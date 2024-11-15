@@ -1,1 +1,32 @@
+import numpy as np
 
+data = np.genfromtxt("ASTR19_F24_group_project_data.txt", dtype=('i8','U6','f8'))
+
+day = []
+time = []
+height = []
+
+for i in range(len(data)):
+    day.append(data[i][0])
+    time.append(data[i][1])
+    height.append(data[i][2])
+    
+print(day)
+print(time)
+print(height)
+
+timehour = []
+timemin = []
+timehourdec = []
+timemindec = []
+timepercent = []
+x = []
+for i in range(len(time)):
+    splittime = time[i].split(':')
+    timehour.append(splittime[0])
+    timehourdec.append(float(splittime[0])/24)
+    timemin.append(splittime[1])
+    timemindec.append(float(splittime[1])/1440)
+    timepercent.append(timehourdec[i]+timemindec[i])
+    x.append(timepercent[i]+day[i])
+    
