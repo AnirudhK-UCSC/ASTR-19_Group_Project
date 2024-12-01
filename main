@@ -1,4 +1,9 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy import optimize
+import tensorflow as tf
+print(tf.__version__)
+
 
 data = np.genfromtxt("ASTR19_F24_group_project_data.txt", dtype=('i8','U6','f8'))
 
@@ -15,6 +20,8 @@ print(day)
 print(time)
 print(height)
 
+
+
 timehour = []
 timemin = []
 timehourdec = []
@@ -29,4 +36,91 @@ for i in range(len(time)):
     timemindec.append(float(splittime[1])/1440)
     timepercent.append(timehourdec[i]+timemindec[i])
     x.append(timepercent[i]+day[i])
-    
+
+print(x)
+
+x = np.asarray(x).astype(np.float32)
+
+
+
+plt.plot(x,height, '-o')
+plt.xlabel('Time (days)')
+plt.ylabel('Tide Height (ft.)')
+
+
+
+A_init = 2.9145562648773193
+A_fit = tf.Variable(A_init)
+B_init = 0.45006895065307617
+B_fit = tf.Variable(B_init)
+C_init = 0.2865771949291229
+C_fit = tf.Variable(C_init)
+D_init = 1.1557908058166504
+D_fit = tf.Variable(D_init)
+E_init = 30.130300521850586
+E_fit = tf.Variable(E_init)
+F_init = -1.0028715133666992
+F_fit = tf.Variable(F_init)
+G_init = 2.4069228172302246
+G_fit = tf.Variable(G_init)
+
+
+
+@tf.function
+def model(x):
+    return (A_fit * tf.math.sin(B_fit * x + C_fit) + D_fit) * tf.math.sin(E_fit * x + F_fit) + G_fit
+
+
+
+@tf.function
+def mse(y_true, y_pred):
+    return tf.losses.mean_squared_error(y_true,y_pred)
+
+
+
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+
+
+
+epochs = 30000 #number of epochs to run
+display_step = 1000 #number of epochs between printing info to screen
+
+for epoch in range(epochs):
+    #monitor training/display steps
+    if((epoch%display_step)==0):
+        pred = model(x)
+        loss = mse(pred, height)
+
+        #To print this info, we need to convert to numpy arrays
+        print(f"Epoch {epoch} | Loss {loss.numpy()}, A: {A_fit.numpy()}, B: {B_fit.numpy()}, C: {C_fit.numpy()}, D: {D_fit.numpy()}, E: {E_fit.numpy()}, F: {F_fit.numpy()}, G: {G_fit.numpy()}")
+
+    #In TF2, gradients are handled using the GradientTape class. Begin GradientTape and optimize
+    with tf.GradientTape() as g:
+        pred = model(x)
+        loss = mse(height,pred)
+
+    #Compute dm, db, the gradients with respect to m_fit and b_fit
+    gradients = g.gradient(loss, [A_fit,B_fit,C_fit,D_fit,E_fit,F_fit,G_fit])
+
+    #update m_fit and b_fit with the gradients x learning
+    optimizer.apply_gradients(zip(gradients,[A_fit,B_fit,C_fit,D_fit,E_fit,F_fit,G_fit]))
+
+print(f"Epoch {epoch} | Loss {loss.numpy()}, A: {A_fit.numpy()}, B: {B_fit.numpy()}, C: {C_fit.numpy()}, D: {D_fit.numpy()}, E: {E_fit.numpy()}, F: {F_fit.numpy()}, G: {G_fit.numpy()}")
+print("Done!")
+
+
+
+def model_fit(x, a, b, c, d, e, f, g):
+    return (a * np.sin(b*np.array(x) + c) + d) * np.sin(e*np.array(x) + f) + g
+
+y_fit = model_fit(x,A_fit,B_fit,C_fit,D_fit,E_fit,F_fit,G_fit)
+
+
+
+f = plt.figure(figsize=(7,7))
+plt.plot(x,height,'-o',label="data")
+plt.plot(x,y_fit,label="fit")
+plt.xlabel('Time (days)')
+plt.ylabel('Tide Height (ft.)')
+plt.legend(loc=0,frameon=False)
+plt.savefig("fitmodel.pdf",bbox_inches="tight",facecolor="white")
