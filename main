@@ -114,7 +114,7 @@ def model_fit(x, a, b, c, d, e, f, g):
     return (a * np.sin(b*np.array(x) + c) + d) * np.sin(e*np.array(x) + f) + g
 
 y_fit = model_fit(x,A_fit,B_fit,C_fit,D_fit,E_fit,F_fit,G_fit)
-
+residuals = height - y_fit
 
 
 f = plt.figure(figsize=(7,7))
@@ -124,3 +124,74 @@ plt.xlabel('Time (days)')
 plt.ylabel('Tide Height (ft.)')
 plt.legend(loc=0,frameon=False)
 plt.savefig("fitmodel.pdf",bbox_inches="tight",facecolor="white")
+
+
+f = plt.figure(figsize=(7,7))
+plt.plot(x,height,'-o',label="data")
+plt.plot(x,y_fit,label="fit")
+plt.xlabel('Time (days)')
+plt.ylabel('Tide Height (ft.)')
+plt.legend(loc=0,frameon=False)
+
+# Plot residuals
+plt.figure(figsize=(10, 6))
+plt.plot(x, residuals, 'o', label="Residuals")
+plt.axhline(0, color='red', linestyle='--')
+plt.xlabel('Time (days)')
+plt.ylabel('Residuals (ft.)')
+plt.title('Residuals of the Fit')
+plt.savefig("residuals_plot.pdf")
+plt.show()
+
+
+# Histogram residuals
+plt.figure(figsize=(10, 6))
+plt.hist(residuals, bins=20, alpha=0.7, edgecolor='black')
+plt.xlabel('Residuals (ft.)')
+plt.ylabel('Frequency')
+plt.title('Histogram of Residuals')
+plt.savefig("residuals_histogram.pdf")
+plt.show()
+plt.figure(figsize=(8, 6))
+plt.plot(x, height, 'o', label="Measured Data", markersize=4)
+plt.plot(x, y_fit, '-', label="Fitted Model")
+plt.xlabel('Time (days)', fontsize=14)
+plt.ylabel('Tide Height (ft)', fontsize=14)
+plt.title('Tidal Measurements vs Fitted Model', fontsize=16)
+plt.legend(fontsize=12)
+plt.grid()
+plt.savefig("tidal_model_fit.pdf")
+plt.show()
+
+
+residual_std = np.std(residuals)
+assumed_error = 0.25
+intrinsic_scatter = np.sqrt(residual_std**2 - assumed_error**2)
+
+print(f"Residual standard deviation: {residual_std:.3f}")
+print(f"Intrinsic scatter: {intrinsic_scatter:.3f}")
+
+
+# Add tsunami event to dataset
+tsunami_height = 2.0
+tsunami_time = 14  
+tsunami_x = tsunami_time
+tsunami_residual = tsunami_height - model_fit(x,A_fit,B_fit,C_fit,D_fit,E_fit,F_fit,G_fit)
+
+
+# Add to residuals
+residuals_with_outlier = np.append(residuals, tsunami_residual)
+
+
+# Histogram
+plt.figure(figsize=(10, 6))
+plt.hist(residuals_with_outlier, bins=20, alpha=0.7, edgecolor='black', label="Residuals with Outlier")
+plt.xlabel('Residuals (ft.)')
+plt.ylabel('Frequency')
+plt.title('Histogram of Residuals with Tsunami Event')
+plt.legend()
+plt.savefig("updated_residuals_histogram.pdf")
+plt.show()
+
+# Standard deviations for tsunami
+tsunami_deviation = tsunami_residual / residual_std
